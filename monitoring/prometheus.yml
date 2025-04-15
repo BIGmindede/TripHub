@@ -1,0 +1,57 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: 'spring-actuator'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets:
+        - 'api-gateway:8080'
+        - 'app_profile:8080'
+        - 'app_notification:8080'
+        - 'app_trip:8080'
+        - 'app_report:8080'
+        - 'app_kanban:8080'
+        - 'app_media:8080'
+
+  - job_name: 'rabbitmq'
+    static_configs:
+      - targets: ['rabbitmq-exporter:9419']
+
+  # Мониторинг PostgreSQL (отдельный job для каждого экземпляра)
+  - job_name: 'postgres-profile'
+    static_configs:
+      - targets: ['postgres-exporter-profile:9187']
+    labels:
+      db_instance: 'profile_db'
+
+  - job_name: 'postgres-trip'
+    static_configs:
+      - targets: ['postgres-exporter-trip:9187']
+    labels:
+      db_instance: 'trip_db'
+
+  - job_name: 'postgres-report'
+    static_configs:
+      - targets: ['postgres-exporter-report:9187']
+    labels:
+      db_instance: 'report_db'
+
+  - job_name: 'postgres-kanban'
+    static_configs:
+      - targets: ['postgres-exporter-kanban:9187']
+    labels:
+      db_instance: 'kanban_db'
+
+  - job_name: 'postgres-media'
+    static_configs:
+      - targets: ['postgres-exporter-media:9187']
+    labels:
+      db_instance: 'media_db'
+
+  - job_name: 'postgres-notification'
+    static_configs:
+      - targets: ['postgres-exporter-notifiacation:9187']
+    labels:
+      db_instance: 'notification_db'

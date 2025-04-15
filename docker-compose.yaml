@@ -1,0 +1,326 @@
+services:
+  ### Infrastructure Services ###
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    hostname: rabbitmq
+    ports: ["5672:5672", "15672:15672"]
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS}
+    networks:
+      - microservices-network
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+
+  config-service:
+    build: ./service/config
+    container_name: config-service
+    ports:
+      - "8888:8888"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      CLOUD_CONFIG_REPO_BASE_URL: ${CLOUD_CONFIG_REPO_BASE_URL}
+    depends_on:
+      - discovery-service
+    networks:
+      - microservices-network
+
+  discovery-service:
+    build: ./service/discovery
+    container_name: discovery-service
+    ports:
+      - "8761:8761"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      # SPRING_ZIPKIN_BASE_URL: http://jaeger:9411
+    networks:
+      - microservices-network
+
+  api-gateway:
+    build: ./service/gateway
+    container_name: api-gateway
+    ports:
+      - "8088:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      EUREKA_SERVER_URL: http://discovery-service:8761/eureka
+      CLOUD_CONFIG_BASE_URL: http://config-service:8888
+      SECURITY_SERVICE_BASE_URL: http://profile/auth/refresh
+    depends_on:
+      - config-service
+      - discovery-service
+    networks:
+      - microservices-network
+
+  ### Business Services ###
+  db_profile:
+    image: postgres:15
+    container_name: db_profile
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: profile_db
+    volumes:
+      - postgres_data_profile:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - microservices-network
+
+  app_profile:
+    build: ./functional/profile
+    container_name: app_profile
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db_profile
+    environment:
+      R2DBC_URL: r2dbc:postgresql://db_profile/profile_db
+      R2DBC_USERNAME: postgres
+      R2DBC_PASSWORD: postgres
+      SPRING_FLYWAY_URL: jdbc:postgresql://db_profile/profile_db
+      SPRING_FLYWAY_USER: postgres
+      SPRING_FLYWAY_PASSWORD: postgres
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_ENCODER_SECRET: ${JWT_ENCODER_SECRET}
+      RABBITMQ_PORT: 5672
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_USERNAME: ${RABBITMQ_USER}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASS}
+      SECURITY_SERVICE_BASE_URL: http://localhost:8088/api/auth
+      SPRING_PROFILES_ACTIVE: docker
+      EUREKA_SERVER_URL: http://discovery-service:8761/eureka
+      CLOUD_CONFIG_BASE_URL: http://config-service:8888
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: "*"
+    networks:
+      - microservices-network
+
+  db_notification:
+    image: postgres:15
+    container_name: db_notification
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: notification_db
+    volumes:
+      - postgres_data_notification:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+    networks:
+      - microservices-network
+
+  app_notification:
+    build: ./functional/notification
+    container_name: app_notification
+    ports:
+      - "8081:8080"
+    depends_on:
+      - db_notification
+    environment:
+      R2DBC_URL: r2dbc:postgresql://db_notification/notification_db
+      R2DBC_USERNAME: postgres
+      R2DBC_PASSWORD: postgres
+      SPRING_FLYWAY_URL: jdbc:postgresql://db_notification/notification_db
+      SPRING_FLYWAY_USER: postgres
+      SPRING_FLYWAY_PASSWORD: postgres
+      SMTP_ADDRESS: ${SMTP_USER}
+      SMTP_PASSWORD: ${SMTP_PASSWORD}
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USERNAME: ${RABBITMQ_USER}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASS}
+      SPRING_PROFILES_ACTIVE: docker
+      EUREKA_SERVER_URL: http://discovery-service:8761/eureka
+      CLOUD_CONFIG_BASE_URL: http://config-service:8888
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: "*"
+    networks:
+      - microservices-network
+
+  db_trip:
+    image: postgres:15
+    container_name: db_trip
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: trip_db
+    volumes:
+      - postgres_data_trip:/var/lib/postgresql/data
+    ports:
+      - "5434:5432"
+    networks:
+      - microservices-network
+
+  app_trip:
+    build: ./functional/trip
+    container_name: app_trip
+    ports:
+      - "8082:8080"
+    depends_on:
+      - db_trip
+    environment:
+      R2DBC_URL: r2dbc:postgresql://db_trip/trip_db
+      R2DBC_USERNAME: postgres
+      R2DBC_PASSWORD: postgres
+      SPRING_FLYWAY_URL: jdbc:postgresql://db_trip/trip_db
+      SPRING_FLYWAY_USER: postgres
+      SPRING_FLYWAY_PASSWORD: postgres
+      TRIP_SERVICE_BASE_URL: http://localhost:8088/api/trips
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USERNAME: ${RABBITMQ_USER}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASS}
+      SPRING_PROFILES_ACTIVE: docker
+      EUREKA_SERVER_URL: http://discovery-service:8761/eureka
+      CLOUD_CONFIG_BASE_URL: http://config-service:8888
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: "*"
+    networks:
+      - microservices-network
+
+  db_report:
+    image: postgres:15
+    container_name: db_report
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: report_db
+    volumes:
+      - postgres_data_report:/var/lib/postgresql/data
+    ports:
+      - "5435:5432"
+    networks:
+      - microservices-network
+
+  app_report:
+    build: ./functional/report
+    container_name: app_report
+    ports:
+      - "8083:8080"
+    depends_on:
+      - db_report
+    environment:
+      R2DBC_URL: r2dbc:postgresql://db_report/report_db
+      R2DBC_USERNAME: postgres
+      R2DBC_PASSWORD: postgres
+      SPRING_FLYWAY_URL: jdbc:postgresql://db_report/report_db
+      SPRING_FLYWAY_USER: postgres
+      SPRING_FLYWAY_PASSWORD: postgres
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USERNAME: ${RABBITMQ_USER}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASS}
+      SPRING_PROFILES_ACTIVE: docker
+      EUREKA_SERVER_URL: http://discovery-service:8761/eureka
+      CLOUD_CONFIG_BASE_URL: http://config-service:8888
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: "*"
+    networks:
+      - microservices-network
+
+  db_kanban:
+    image: postgres:15
+    container_name: db_kanban
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: kanban_db
+    volumes:
+      - postgres_data_kanban:/var/lib/postgresql/data
+    ports:
+      - "5436:5432"
+    networks:
+      - microservices-network
+
+  app_kanban:
+    build: ./functional/kanban
+    container_name: app_kanban
+    ports:
+      - "8084:8080"
+    depends_on:
+      - db_kanban
+    environment:
+      R2DBC_URL: r2dbc:postgresql://db_kanban/kanban_db
+      R2DBC_USERNAME: postgres
+      R2DBC_PASSWORD: postgres
+      SPRING_FLYWAY_URL: jdbc:postgresql://db_kanban/kanban_db
+      SPRING_FLYWAY_USER: postgres
+      SPRING_FLYWAY_PASSWORD: postgres
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USERNAME: ${RABBITMQ_USER}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASS}
+      SPRING_PROFILES_ACTIVE: docker
+      EUREKA_SERVER_URL: http://discovery-service:8761/eureka
+      CLOUD_CONFIG_BASE_URL: http://config-service:8888
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: "*"
+    networks:
+      - microservices-network
+
+  db_media:
+    image: postgres:15
+    container_name: db_media
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: media_db
+    volumes:
+      - postgres_data_media:/var/lib/postgresql/data
+    ports:
+      - "5437:5432"
+    networks:
+      - microservices-network
+  
+  minio:
+    image: minio/minio
+    container_name: minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_PASSWORD}
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    networks:
+      - microservices-network
+
+  app_media:
+    build: ./functional/media
+    container_name: app_media
+    ports:
+      - "8085:8080"
+    depends_on:
+      - db_media
+      - minio
+    environment:
+      R2DBC_URL: r2dbc:postgresql://db_media/media_db
+      R2DBC_USERNAME: postgres
+      R2DBC_PASSWORD: postgres
+      SPRING_FLYWAY_URL: jdbc:postgresql://db_media/media_db
+      SPRING_FLYWAY_USER: postgres
+      SPRING_FLYWAY_PASSWORD: postgres
+      MINIO_URL: http://minio:9000
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin
+      MINIO_BUCKET_NAME: media
+      SPRING_PROFILES_ACTIVE: docker
+      EUREKA_SERVER_URL: http://discovery-service:8761/eureka
+      CLOUD_CONFIG_BASE_URL: http://config-service:8888
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: "*"
+    networks:
+      - microservices-network
+
+  
+volumes:
+  postgres_data_profile:
+  postgres_data_notification:
+  postgres_data_trip:
+  postgres_data_report:
+  postgres_data_kanban:
+  postgres_data_media:
+  rabbitmq_data:
+  minio_data:
+
+networks:
+  microservices-network:
+    driver: bridge

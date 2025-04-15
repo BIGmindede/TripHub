@@ -1,0 +1,35 @@
+services:
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: profile_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  app:
+    build: .
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db
+    environment:
+      R2DBC_URL: r2dbc:postgresql://db:5432/profile_db
+      R2DBC_USERNAME: postgres
+      R2DBC_PASSWORD: postgres
+      SPRING_FLYWAY_URL: jdbc:postgresql://db:5432/profile_db
+      SPRING_FLYWAY_USER: postgres
+      SPRING_FLYWAY_PASSWORD: postgres
+      JWT_SECRET: b21e600c4c97bc768f84e7f52b8eb0a8e36310d273e98b96e010703ac33b182f
+      JWT_ENCODER_SECRET: e69e53e8d403b43f17f3bee698f2aa5757b6e2676a6ed6295400ad6249f6a7b5
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USERNAME: guest
+      RABBITMQ_PASSWORD: guest
+      SECURITY_SERVICE_BASE_URL: http://localhost:8080
+
+volumes:
+  postgres_data:

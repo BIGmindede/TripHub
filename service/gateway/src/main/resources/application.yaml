@@ -1,0 +1,22 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: api-gateway
+  config:
+    import: configserver:${CLOUD_CONFIG_BASE_URL}
+  cloud:
+    config:
+      uri: ${CLOUD_CONFIG_BASE_URL:http://localhost:8888}  # Config Service
+      fail-fast: true  # Настройки для кастомного фильтра валидации
+  jwt-validation:
+    security-service-url: ${SECURITY_SERVICE_BASE_URL}
+    cookie-name: jwt  # Имя вашей HTTP-only cookie
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_SERVER_URL:http://localhost:8761/eureka}
+    healthcheck:
+      enabled: true

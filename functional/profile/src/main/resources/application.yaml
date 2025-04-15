@@ -1,0 +1,30 @@
+spring:
+  application:
+    name: profile
+  config:
+    import: configserver:${CLOUD_CONFIG_BASE_URL}
+  cloud:
+    config:
+      uri: ${CLOUD_CONFIG_BASE_URL:http://localhost:8888}  # Config Service
+      fail-fast: true
+      
+jwt:
+  password:
+    encoder:
+      secret: ${JWT_ENCODER_SECRET}
+      iteration: 64
+      keylength: 256
+  secret: ${JWT_SECRET}
+  expiration: 86400
+  issuer: proselyte
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_SERVER_URL:http://localhost:8761/eureka}
+    fetch-registry: true
+    register-with-eureka: true
+  instance:
+    prefer-ip-address: true
+    appname: ${spring.application.name}
+

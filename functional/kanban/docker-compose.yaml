@@ -1,0 +1,32 @@
+services:
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: kanban_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5436:5432"
+
+  app:
+    build: .
+    ports:
+      - "8084:8080"
+    depends_on:
+      - db
+    environment:
+      R2DBC_URL: r2dbc:postgresql://db:5432/kanban_db
+      R2DBC_USERNAME: postgres
+      R2DBC_PASSWORD: postgres
+      SPRING_FLYWAY_URL: jdbc:postgresql://db:5432/kanban_db
+      SPRING_FLYWAY_USER: postgres
+      SPRING_FLYWAY_PASSWORD: postgres
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USERNAME: guest
+      RABBITMQ_PASSWORD: guest
+
+volumes:
+  postgres_data:
