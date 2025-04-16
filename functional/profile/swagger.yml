@@ -1,0 +1,347 @@
+openapi: 3.0.1
+info:
+  title: Profile Service API
+  description: API for user authentication and profile management
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:8080
+    description: Local development server
+
+paths:
+  /auth/register:
+    post:
+      tags:
+        - Authentication
+      summary: Register new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProfileDTO'
+      responses:
+        '204':
+          description: Registration successful
+        '400':
+          description: Bad request
+        '500':
+          description: Internal server error
+
+  /auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: Authenticate user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthRequest'
+      responses:
+        '204':
+          description: Login successful (sets HttpOnly cookie)
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+                example: jwt=token; HttpOnly; Secure; Path=/; SameSite=Lax
+        '401':
+          description: Unauthorized
+        '500':
+          description: Internal server error
+
+  /auth/approve/{profileId}:
+    get:
+      tags:
+        - Authentication
+      summary: Approve user profile
+      parameters:
+        - name: profileId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Profile approved
+        '404':
+          description: Profile not found
+        '500':
+          description: Internal server error
+
+  /auth/refresh:
+    get:
+      tags:
+        - Authentication
+      summary: Refresh JWT token
+      parameters:
+        - name: jwt
+          in: cookie
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Token refreshed (sets new HttpOnly cookie)
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+                example: jwt=new_token; HttpOnly; Secure; Path=/; SameSite=Lax
+        '401':
+          description: Unauthorized
+        '500':
+          description: Internal server error
+
+  /profiles/{id}:
+    get:
+      tags:
+        - Profiles
+      summary: Get profile by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Profile found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Profile'
+        '404':
+          description: Profile not found
+        '500':
+          description: Internal server error
+
+    put:
+      tags:
+        - Profiles
+      summary: Update profile
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Profile'
+      responses:
+        '204':
+          description: Profile updated
+        '404':
+          description: Profile not found
+        '500':
+          description: Internal server error
+
+    delete:
+      tags:
+        - Profiles
+      summary: Delete profile
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Profile deleted
+        '500':
+          description: Internal server error
+
+  /profiles:
+    get:
+      tags:
+        - Profiles
+      summary: Get multiple profiles by IDs
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                type: string
+                format: uuid
+      responses:
+        '200':
+          description: Profiles found
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Profile'
+        '404':
+          description: No profiles found
+        '500':
+          description: Internal server error
+
+  /profiles/by_tagname/{tagName}:
+    get:
+      tags:
+        - Profiles
+      summary: Search profiles by tag name
+      parameters:
+        - name: tagName
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Profiles found
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Profile'
+        '500':
+          description: Internal server error
+
+  /profiles/by_name/{name}:
+    get:
+      tags:
+        - Profiles
+      summary: Search profiles by name
+      parameters:
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Profiles found
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Profile'
+        '500':
+          description: Internal server error
+
+components:
+  schemas:
+    AuthRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+      required:
+        - email
+        - password
+
+    ProfileDTO:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+        country:
+          type: string
+        birthDate:
+          type: string
+          format: date
+        tagName:
+          type: string
+        role:
+          $ref: '#/components/schemas/ProfileRoles'
+        enabled:
+          type: boolean
+      required:
+        - email
+        - password
+        - name
+
+    Profile:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+        name:
+          type: string
+        country:
+          type: string
+        birthDate:
+          type: string
+          format: date
+        tagName:
+          type: string
+        role:
+          $ref: '#/components/schemas/ProfileRoles'
+        enabled:
+          type: boolean
+
+    ProfileRoles:
+      type: string
+      enum:
+        - ACTIVE
+        - INACTIVE
+
+    RegisterApproveNotifyRequest:
+      type: object
+      properties:
+        title:
+          type: string
+        text:
+          type: string
+        actions:
+          type: array
+          items:
+            type: object
+            properties:
+              text:
+                type: string
+              url:
+                type: string
+              type:
+                type: string
+
+    ExtendedNotificationDTO:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        htmlTemplateDTO:
+          $ref: '#/components/schemas/RegisterApproveNotifyRequest'
+
+securitySchemes:
+  jwtCookie:
+    type: apiKey
+    in: cookie
+    name: jwt
