@@ -25,11 +25,9 @@ public class ProfileController {
                 .defaultIfEmpty(ResponseEntity.notFound().build());
     }
 
-    @GetMapping
-    public Flux<ResponseEntity<Profile>> getProfilesByIds(@RequestBody List<UUID> ids) {
-        return profileService.getProfilesByIds(ids)
-                .map(ResponseEntity::ok)
-                .defaultIfEmpty(ResponseEntity.notFound().build());
+    @PostMapping("/by_ids")
+    public Flux<Profile> getProfilesByIds(@RequestBody List<UUID> ids) {
+        return profileService.getProfilesByIds(ids);
     }
 
     @GetMapping("/by_tagname/{tagName}")
@@ -40,6 +38,11 @@ public class ProfileController {
     @GetMapping("/by_name/{name}")
     public Flux<Profile> getProfilesByName(@PathVariable String name) {
         return profileService.getProfilesByName(name);
+    }
+
+    @GetMapping("/by_email/{email}")
+    public Mono<Profile> getProfilesByEmail(@PathVariable String email) {
+        return profileService.getProfilesByEmail(email);
     }
 
     @PutMapping("/{id}")

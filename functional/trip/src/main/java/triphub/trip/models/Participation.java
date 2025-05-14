@@ -20,4 +20,5 @@ public class Participation {
     private UUID tripId;
     private UUID profileId;
     private ParticipationStatuses status;
+    private Boolean isCurrent;
 }

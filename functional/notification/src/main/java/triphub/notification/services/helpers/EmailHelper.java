@@ -23,7 +23,6 @@ public class EmailHelper {
 
     public Mono<Void> sendHtmlEmail(String to, String subject, String htmlContent) {
         return Mono.fromCallable(() -> {
-                    System.out.println(htmlContent);
                     MimeMessage message = mailSender.createMimeMessage();
                     MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
                     helper.setFrom(fromEmail);

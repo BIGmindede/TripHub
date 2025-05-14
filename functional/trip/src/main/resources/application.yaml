@@ -5,13 +5,19 @@ spring:
     import: configserver:${CLOUD_CONFIG_BASE_URL}
   cloud:
     config:
-      uri: ${CLOUD_CONFIG_BASE_URL:http://localhost:8888}  # Config Service
-      fail-fast: true
+      uri: ${CLOUD_CONFIG_BASE_URL}  # Config Service
+      fail-fast: false
+
+jwt:
+  secret: ${JWT_SECRET}
+  current-trip-id:
+    expiration: 604800  # 7 days
+  issuer: proselyte
 
 eureka:
   client:
     service-url:
-      defaultZone: ${EUREKA_SERVER_URL:http://localhost:8761/eureka}
+      defaultZone: ${EUREKA_SERVER_URL}
     fetch-registry: true
     register-with-eureka: true
   instance:

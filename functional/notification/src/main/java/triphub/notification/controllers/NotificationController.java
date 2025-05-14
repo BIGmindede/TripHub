@@ -28,25 +28,6 @@ public class NotificationController {
 
     private final NotificationService notificationService;
 
-    @PostMapping
-    @ResponseStatus(HttpStatus.CREATED)
-    public Mono<Notification> createAndSendNotification(
-            @RequestBody ExtendedNotificationDTO dto) {
-        return notificationService.createAndSendNotification(
-                dto.getNotification(),
-                dto.getEmail(),
-                dto.getHtmlTemplateDTO()
-        );
-    }
-
-    @PostMapping("/email")
-    @ResponseStatus(HttpStatus.CREATED)
-    public Mono<ResponseEntity<Void>> sendEmailNotification(
-            @RequestBody ExtendedNotificationDTO dto) {
-        return notificationService.sendEmail(dto.getEmail(), dto.getHtmlTemplateDTO())
-                .thenReturn(ResponseEntity.ok().build());
-    }
-
     @GetMapping("/by_profile/{profileId}")
     public Flux<Notification> getNotificationsByProfileId(
             @PathVariable UUID profileId) {

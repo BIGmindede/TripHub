@@ -8,8 +8,8 @@ spring:
     import: configserver:${CLOUD_CONFIG_BASE_URL}
   cloud:
     config:
-      uri: ${CLOUD_CONFIG_BASE_URL:http://localhost:8888}  # Config Service
-      fail-fast: true  # Настройки для кастомного фильтра валидации
+      uri: ${CLOUD_CONFIG_BASE_URL}  # Config Service
+      fail-fast: false  # Настройки для кастомного фильтра валидации
   jwt-validation:
     security-service-url: ${SECURITY_SERVICE_BASE_URL}
     cookie-name: jwt  # Имя вашей HTTP-only cookie
@@ -17,6 +17,6 @@ spring:
 eureka:
   client:
     service-url:
-      defaultZone: ${EUREKA_SERVER_URL:http://localhost:8761/eureka}
+      defaultZone: ${EUREKA_SERVER_URL}
     healthcheck:
       enabled: true

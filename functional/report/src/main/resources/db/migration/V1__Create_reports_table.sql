@@ -17,5 +17,6 @@ CREATE TABLE IF NOT EXISTS reports (
     total_budget TEXT,
     equipment_taken TEXT,
     notes TEXT,
+    is_published BOOLEAN DEFAULT FALSE,
     PRIMARY KEY (id)
 );

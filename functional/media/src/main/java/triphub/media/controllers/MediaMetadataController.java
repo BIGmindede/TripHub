@@ -85,6 +85,4 @@ public class MediaMetadataController {
     public Mono<Void> deleteMedia(@PathVariable UUID id) {
         return mediaService.deleteMedia(id);
     }
-
-
 }

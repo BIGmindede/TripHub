@@ -14,5 +14,5 @@ import java.util.UUID;
 public interface ReportRepository extends ReactiveCrudRepository<Report, UUID> {
     @Query("SELECT * FROM reports WHERE arrival_to ILIKE '%' || :arrivalTo || '%'")
     Flux<Report> findReportsByArrivalToContaining(String arrivalTo);
-    Mono<Report> findReportByTripId(UUID tripId);
+    Mono<Report> findByTripId(UUID tripId);
 }

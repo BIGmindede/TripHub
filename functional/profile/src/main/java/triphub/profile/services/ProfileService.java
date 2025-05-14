@@ -47,6 +47,10 @@ public class ProfileService {
         return profileRepository.findAllById(ids);
     }
 
+    public Mono<Profile> getProfilesByEmail(String email) {
+        return profileRepository.findByEmail(email);
+    }
+
     public Mono<Profile> updateProfile(UUID id, Profile profile) {
         return profileRepository.findById(id)
                 .flatMap(existing -> {

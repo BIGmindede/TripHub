@@ -24,6 +24,7 @@ public class MediaMetadata {
     private UUID tripId;
     private Boolean isOpenedForPublish;
     private String geodata;
+    private String description;
     private LocalDateTime createdAt;
     private String contentType;
     private Long fileSize;

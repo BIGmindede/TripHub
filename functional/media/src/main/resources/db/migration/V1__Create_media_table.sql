@@ -5,6 +5,7 @@ CREATE TABLE IF NOT EXISTS media_metadata (
     author_id UUID NOT NULL,
     media_url VARCHAR(255) NOT NULL,
     trip_id UUID,
+    description TEXT,
     geodata VARCHAR(255),
     is_opened_for_publish BOOLEAN DEFAULT false,
     created_at TIMESTAMP NOT NULL,

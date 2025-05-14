@@ -30,7 +30,7 @@ public class RabbitService {
         return Mono.fromCallable(() -> {
             RegisterApproveNotifyRequest.Action action = new RegisterApproveNotifyRequest.Action(
                 "Подтвердить аккаунт",
-                securityServiceBaseUrl + "/auth/approve/" + profile.getId(),
+                securityServiceBaseUrl + "/approve/" + profile.getId(),
                 "ACCEPT"
             );
 

@@ -34,6 +34,18 @@ public class ReportService {
         return reportRepository.findReportsByArrivalToContaining(arrivalTo);
     }
 
+    public Flux<Report> getReports() {
+        return reportRepository.findAll();
+    }
+
+    public Mono<Report> updateReportByTripId(UUID tripId, Report report) {
+        return reportRepository.findByTripId(tripId)
+            .flatMap(existing -> {
+                reportMapper.updateReport(report, existing);
+                return reportRepository.save(existing);
+            });
+    }
+
     public Mono<Report> updateReport(UUID id, Report report) {
         return reportRepository.findById(id)
             .flatMap(existing -> {

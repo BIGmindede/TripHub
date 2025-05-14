@@ -30,8 +30,11 @@ import triphub.profile.services.RabbitService;
 @RequestMapping("/auth")
 public class AuthController {
 
-    @Value("${jwt.expiration}")
-    private Integer expirationInSeconds;
+    @Value("${jwt.access-token.expiration}")
+    private Integer accessTokenExpirationInSeconds;
+    
+    @Value("${jwt.refresh-token.expiration}")
+    private Integer refreshTokenExpirationInSeconds;
  
     private final SecurityService securityService;
     private final ProfileService profileService;
@@ -49,18 +52,38 @@ public class AuthController {
     @PostMapping("/login")
     public Mono<ResponseEntity<Void>> login(@RequestBody AuthRequest dto, ServerWebExchange exchange) {
         return securityService.authenticate(dto.getEmail(), dto.getPassword())
-            .flatMap(newToken -> {
-                ResponseCookie cookie = ResponseCookie.from("jwt", newToken.getToken())
+            .flatMap(tokenPair -> {
+                // Set access token cookie
+                ResponseCookie accessCookie = ResponseCookie.from("access_token", tokenPair.getAccessToken().getToken())
                     .httpOnly(true)
                     .secure(true)
                     .path("/")
-                    .maxAge(System.currentTimeMillis() + expirationInSeconds * 1000L)
+                    .maxAge(accessTokenExpirationInSeconds)
                     .sameSite("Lax")
                     .build();
 
-                exchange.getResponse().addCookie(cookie);
+                // Set refresh token cookie
+                ResponseCookie refreshCookie = ResponseCookie.from("refresh_token", tokenPair.getRefreshToken().getToken())
+                    .httpOnly(true)
+                    .secure(true)
+                    .path("/")
+                    .maxAge(refreshTokenExpirationInSeconds)
+                    .sameSite("Lax")
+                    .build();
+                
+                ResponseCookie profileCookie = ResponseCookie.from(
+                    "profile_id",
+                    tokenPair.getProfileId()
+                )
+                    .path("/")
+                    .maxAge(refreshTokenExpirationInSeconds)
+                    .build();
+
+                exchange.getResponse().addCookie(profileCookie);
+                exchange.getResponse().addCookie(accessCookie);
+                exchange.getResponse().addCookie(refreshCookie);
                 return Mono.just(ResponseEntity.noContent().<Void>build());
-        });
+            });
     }
 
     @GetMapping("/approve/{profileId}")
@@ -71,25 +94,56 @@ public class AuthController {
 
     @GetMapping("/refresh")
     public Mono<ResponseEntity<Void>> refresh(
-        @CookieValue(name = "jwt", required = false) String token,
+        @CookieValue(name = "refresh_token", required = false) String refreshToken,
         ServerWebExchange exchange
     ) {
-        if (token == null || token.isBlank()) {
+        if (refreshToken == null || refreshToken.isBlank()) {
+            exchange.getResponse().addCookie(ResponseCookie.from("access_token", "").path("/").maxAge(0).build());
+            exchange.getResponse().addCookie(ResponseCookie.from("refresh_token", "").path("/").build());
+            exchange.getResponse().addCookie(ResponseCookie.from("profile_id", "").path("/").build());
             return Mono.just(ResponseEntity.status(HttpStatus.UNAUTHORIZED).build());
         }
 
-        return securityService.refreshToken(token)
-            .flatMap(newToken -> {
-                ResponseCookie cookie = ResponseCookie.from("jwt", newToken.getToken())
+        return securityService.refreshTokens(refreshToken)
+            .flatMap(tokenPair -> {
+                // Set new access token cookie
+                ResponseCookie accessCookie = ResponseCookie.from("access_token", tokenPair.getAccessToken().getToken())
                     .httpOnly(true)
                     .secure(true)
                     .path("/")
-                    .maxAge(System.currentTimeMillis() + expirationInSeconds * 1000L)
+                    .maxAge(accessTokenExpirationInSeconds)
                     .sameSite("Lax")
                     .build();
 
-                exchange.getResponse().addCookie(cookie);
+                // Set new refresh token cookie
+                ResponseCookie refreshCookie = ResponseCookie.from("refresh_token", tokenPair.getRefreshToken().getToken())
+                    .httpOnly(true)
+                    .secure(true)
+                    .path("/")
+                    .maxAge(refreshTokenExpirationInSeconds)
+                    .sameSite("Lax")
+                    .build();
+
+                ResponseCookie profileCookie = ResponseCookie.from(
+                    "profile_id",
+                    tokenPair.getProfileId()
+                )
+                    .path("/")
+                    .maxAge(refreshTokenExpirationInSeconds)
+                    .build();
+
+                exchange.getResponse().addCookie(accessCookie);
+                exchange.getResponse().addCookie(refreshCookie);
+                exchange.getResponse().addCookie(profileCookie);
                 return Mono.just(ResponseEntity.ok().build());
             });
+    }
+
+    @GetMapping("/logout")
+    public Mono<ResponseEntity<Void>> logout(ServerWebExchange exchange) {
+        exchange.getResponse().addCookie(ResponseCookie.from("access_token", "").path("/").maxAge(0).build());
+        exchange.getResponse().addCookie(ResponseCookie.from("refresh_token", "").path("/").build());
+        exchange.getResponse().addCookie(ResponseCookie.from("profile_id", "").path("/").build());
+        return Mono.just(ResponseEntity.noContent().<Void>build());
     }
 }

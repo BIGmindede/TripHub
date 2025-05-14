@@ -21,8 +21,9 @@ public class Task {
     private UUID kanbanId;
     private UUID authorId;
     private UUID implementerId;
-    private String status;
+    private int statusId;
     private LocalDate createdAt;
     private LocalDate targetDate;
+    private String name;
     private String description;
 }

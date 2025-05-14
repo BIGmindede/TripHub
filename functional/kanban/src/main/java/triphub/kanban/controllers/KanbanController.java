@@ -12,12 +12,12 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Mono;
+import triphub.kanban.DTOs.CreateKanbanDTO;
 import triphub.kanban.models.Kanban;
 import triphub.kanban.services.KanbanService;
 
@@ -29,8 +29,8 @@ public class KanbanController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public Mono<Kanban> createKanban(@RequestParam UUID tripId) {
-        return kanbanService.createKanban(tripId);
+    public Mono<Kanban> createKanban(@RequestBody CreateKanbanDTO kanban) {
+        return kanbanService.createKanban(kanban.getTripId());
     }
     
     @GetMapping("/by_trip/{tripId}")

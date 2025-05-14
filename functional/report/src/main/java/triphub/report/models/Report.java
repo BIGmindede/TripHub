@@ -32,4 +32,5 @@ public class Report {
     private String totalBudget;
     private String equipmentTaken;
     private String notes;
+    private Boolean isPublished;
 }

@@ -9,3 +9,4 @@ spring:
       server:
         git:
           uri: ${CLOUD_CONFIG_REPO_BASE_URL}
+          default-label: master

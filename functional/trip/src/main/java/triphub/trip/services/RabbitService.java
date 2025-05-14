@@ -1,5 +1,6 @@
 package triphub.trip.services;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -14,10 +15,13 @@ import reactor.core.publisher.Mono;
 import triphub.trip.DTOs.ExtendedNotificationDTO;
 import triphub.trip.DTOs.LinkedKanbanDTO;
 import triphub.trip.DTOs.LinkedReportDTO;
+import triphub.trip.DTOs.NotificationDTO;
 import triphub.trip.DTOs.ParticipationApproveNotifyRequest;
+import triphub.trip.DTOs.constants.NotificationStatuses;
+import triphub.trip.DTOs.constants.NotificationTypes;
 import triphub.trip.configs.rabbitConfig.RabbitConfiguration;
 import triphub.trip.models.Trip;
-
+import triphub.trip.models.Participation;
 @Service
 @RequiredArgsConstructor
 public class RabbitService {
@@ -29,17 +33,17 @@ public class RabbitService {
     @Value("${trip-service.base-url}")
     private String tripServiceBaseUrl;
 
-    public Mono<Void> sendParticipationNotification(UUID participationId, String email) {
+    public Mono<Void> sendParticipationNotification(Participation participation, Trip trip, String email, String authorTag) {
         return Mono.fromCallable(() -> {
             ParticipationApproveNotifyRequest.Action accept = new ParticipationApproveNotifyRequest.Action(
                 "Принять",
-                tripServiceBaseUrl + "/participations/accept/" + participationId,
+                tripServiceBaseUrl + "/participations/accept/" + participation.getId(),
                 "ACCEPT"
             );
 
             ParticipationApproveNotifyRequest.Action decline = new ParticipationApproveNotifyRequest.Action(
                 "Отклонить",
-                tripServiceBaseUrl + "/participations/decline/" + participationId,
+                tripServiceBaseUrl + "/participations/decline/" + participation.getId(),
                 "DECLINE"
             );
 
@@ -50,6 +54,15 @@ public class RabbitService {
             );
 
             ExtendedNotificationDTO notification = new ExtendedNotificationDTO(
+                new NotificationDTO(
+                    participation.getProfileId(),
+                    authorTag,
+                    Instant.now(),
+                    "Пользователь " + authorTag + " пригласил вас в путешествие в " + trip.getDestination(),
+                    NotificationTypes.TRIP_INVITATION,
+                    NotificationStatuses.NEW,
+                    List.of(accept, decline)
+                ),
                 email,
                 htmlTemplate
             );

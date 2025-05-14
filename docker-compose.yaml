@@ -21,10 +21,14 @@ services:
     environment:
       SPRING_PROFILES_ACTIVE: docker
       CLOUD_CONFIG_REPO_BASE_URL: ${CLOUD_CONFIG_REPO_BASE_URL}
-    depends_on:
-      - discovery-service
     networks:
       - microservices-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl http://localhost:8888/actuator/health || exit 1"]
+      interval: 5s
+      timeout: 10s
+      retries: 20
+      start_period: 10s
 
   discovery-service:
     build: ./service/discovery
@@ -33,9 +37,19 @@ services:
       - "8761:8761"
     environment:
       SPRING_PROFILES_ACTIVE: docker
-      # SPRING_ZIPKIN_BASE_URL: http://jaeger:9411
+      SERVER_PORT: 8761
+      EUREKA_CLIENT_REGISTER-WITH-EUREKA: "false"
+      EUREKA_CLIENT_FETCH-REGISTRY: "false"
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: "*"
+      MANAGEMENT_ENDPOINT_HEALTH_SHOWDETAILS: always
     networks:
       - microservices-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl http://localhost:8761/actuator/health || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
 
   api-gateway:
     build: ./service/gateway
@@ -47,11 +61,13 @@ services:
       EUREKA_SERVER_URL: http://discovery-service:8761/eureka
       CLOUD_CONFIG_BASE_URL: http://config-service:8888
       SECURITY_SERVICE_BASE_URL: http://profile/auth/refresh
-    depends_on:
-      - config-service
-      - discovery-service
     networks:
       - microservices-network
+    depends_on:
+      discovery-service:
+        condition: service_healthy
+      config-service:
+        condition: service_healthy
 
   ### Business Services ###
   db_profile:
@@ -67,6 +83,11 @@ services:
       - "5432:5432"
     networks:
       - microservices-network
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres", "-d", "profile_db"]
+      interval: 3s
+      timeout: 5s
+      retries: 10
 
   app_profile:
     build: ./functional/profile
@@ -74,7 +95,14 @@ services:
     ports:
       - "8080:8080"
     depends_on:
-      - db_profile
+      db_profile:
+        condition: service_healthy
+      discovery-service:
+        condition: service_healthy
+      config-service:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_started
     environment:
       R2DBC_URL: r2dbc:postgresql://db_profile/profile_db
       R2DBC_USERNAME: postgres
@@ -93,6 +121,7 @@ services:
       EUREKA_SERVER_URL: http://discovery-service:8761/eureka
       CLOUD_CONFIG_BASE_URL: http://config-service:8888
       MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: "*"
+      MANAGEMENT_ENDPOINT_HEALTH_SHOWDETAILS: always
     networks:
       - microservices-network
 
@@ -109,6 +138,11 @@ services:
       - "5433:5432"
     networks:
       - microservices-network
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres", "-d", "notification_db"]
+      interval: 3s
+      timeout: 5s
+      retries: 10
 
   app_notification:
     build: ./functional/notification
@@ -116,7 +150,10 @@ services:
     ports:
       - "8081:8080"
     depends_on:
-      - db_notification
+      db_notification:
+        condition: service_healthy
+      discovery-service:
+        condition: service_healthy
     environment:
       R2DBC_URL: r2dbc:postgresql://db_notification/notification_db
       R2DBC_USERNAME: postgres
@@ -150,6 +187,11 @@ services:
       - "5434:5432"
     networks:
       - microservices-network
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres", "-d", "trip_db"]
+      interval: 3s
+      timeout: 5s
+      retries: 10
 
   app_trip:
     build: ./functional/trip
@@ -157,7 +199,10 @@ services:
     ports:
       - "8082:8080"
     depends_on:
-      - db_trip
+      db_trip:
+        condition: service_healthy
+      discovery-service:
+        condition: service_healthy
     environment:
       R2DBC_URL: r2dbc:postgresql://db_trip/trip_db
       R2DBC_USERNAME: postgres
@@ -174,6 +219,7 @@ services:
       EUREKA_SERVER_URL: http://discovery-service:8761/eureka
       CLOUD_CONFIG_BASE_URL: http://config-service:8888
       MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: "*"
+      JWT_SECRET: ${JWT_SECRET}
     networks:
       - microservices-network
 
@@ -190,6 +236,11 @@ services:
       - "5435:5432"
     networks:
       - microservices-network
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres", "-d", "report_db"]
+      interval: 3s
+      timeout: 5s
+      retries: 10
 
   app_report:
     build: ./functional/report
@@ -197,7 +248,10 @@ services:
     ports:
       - "8083:8080"
     depends_on:
-      - db_report
+      db_report:
+        condition: service_healthy
+      discovery-service:
+        condition: service_healthy
     environment:
       R2DBC_URL: r2dbc:postgresql://db_report/report_db
       R2DBC_USERNAME: postgres
@@ -229,6 +283,11 @@ services:
       - "5436:5432"
     networks:
       - microservices-network
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres", "-d", "kanban_db"]
+      interval: 3s
+      timeout: 5s
+      retries: 10
 
   app_kanban:
     build: ./functional/kanban
@@ -236,7 +295,10 @@ services:
     ports:
       - "8084:8080"
     depends_on:
-      - db_kanban
+      db_kanban:
+        condition: service_healthy
+      discovery-service:
+        condition: service_healthy
     environment:
       R2DBC_URL: r2dbc:postgresql://db_kanban/kanban_db
       R2DBC_USERNAME: postgres
@@ -268,6 +330,11 @@ services:
       - "5437:5432"
     networks:
       - microservices-network
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres", "-d", "media_db"]
+      interval: 3s
+      timeout: 5s
+      retries: 10
   
   minio:
     image: minio/minio
@@ -283,6 +350,11 @@ services:
       - minio_data:/data
     networks:
       - microservices-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9001/minio/health/live"]
+      interval: 3s
+      timeout: 5s
+      retries: 10
 
   app_media:
     build: ./functional/media
@@ -290,8 +362,12 @@ services:
     ports:
       - "8085:8080"
     depends_on:
-      - db_media
-      - minio
+      db_media:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      discovery-service:
+        condition: service_healthy
     environment:
       R2DBC_URL: r2dbc:postgresql://db_media/media_db
       R2DBC_USERNAME: postgres

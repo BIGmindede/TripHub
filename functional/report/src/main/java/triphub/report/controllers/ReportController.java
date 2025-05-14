@@ -24,6 +24,11 @@ public class ReportController {
         return reportService.createReport(report);
     }
 
+    @GetMapping
+    public Flux<Report> getReports() {
+        return reportService.getReports();
+    }
+
     @GetMapping("/{id}")
     public Mono<ResponseEntity<Report>> getReportById(@PathVariable UUID id) {
         return reportService.getReportById(id)
@@ -46,6 +51,13 @@ public class ReportController {
     @PutMapping("/{id}")
     public Mono<ResponseEntity<Void>> updateReport(@PathVariable UUID id, @RequestBody Report report) {
         return reportService.updateReport(id, report)
+                .map(Void -> ResponseEntity.noContent().<Void>build())
+                .defaultIfEmpty(ResponseEntity.notFound().build());
+    }
+
+    @PutMapping("/by_trip/{tripId}")
+    public Mono<ResponseEntity<Void>> updateReportByTripId(@PathVariable UUID tripId, @RequestBody Report report) {
+        return reportService.updateReportByTripId(tripId, report)
                 .map(Void -> ResponseEntity.noContent().<Void>build())
                 .defaultIfEmpty(ResponseEntity.notFound().build());
     }
